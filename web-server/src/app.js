@@ -1,11 +1,14 @@
 const path = require('path'); // core module of node for file path manipulation
 const express = require('express'); // exposes a single function
 const hbs = require('hbs');
+const geocode = require("./utils/geocode");
+const forecast = require("./utils/forecast");
 
 console.log(__dirname); // gives the route information about where the file lives
 console.log(__filename);// gives the route information about the actual file
 
 const app = express(); // here we are creating our express application
+const port = process.env.PORT || 3000 // value added when working with heroku, whice sets enviromental variables (if the application is ran locally, the 3000 port number will be used)
 
 // DEFINE PATHS FOR EXPRESS CONFIG
 const publicDirectoryPath = path.join(__dirname, '../public'); // using the path module and function join to normalize the introduced path as we were writing in the command line
@@ -52,10 +55,46 @@ app.get('/help', (req, res) => {
 // })
 
 app.get('/weather', (req, res) => {
+    if(!req.query.address){
+        return res.send({
+            error: 'You must provide an address!'
+        })
+    }
+
+    geocode(req.query.address, (error, {latitude, longitude, location} = {}) => {
+        if (error) {
+            return res.send({ error })
+        }
+        forecast(latitude, longitude, (error, forecastData) => {
+            if(error){
+                return res.send({error})
+            }
+
+            res.send({
+                forecast: forecastData,
+                location,
+                address: req.query.address
+            })
+        })
+    })
+
+    // res.send({
+    //     forecast: 'It is snowing',
+    //     location: 'Philadelphia',
+    //     address: req.query.address
+    // });
+})
+
+app.get('/products', (req, res) => {
+    if(!req.query.search) {
+        return res.send({
+            error: 'You must provide a search term'
+        })
+    }
+
     res.send({
-        forecast: 'It is snowing',
-        location: 'Philadelphia'
-    });
+        products : []
+    })
 })
 
 app.get('/help/*', (req, res) => { // matching a bunch of request that have an specific pattern
@@ -74,6 +113,15 @@ app.get('*', (req, res) => { // * is a wild card that express provides to match 
     })
 }) // this needs to come last (be the last app.get), to correctly compose the routes that express matches during a search (every call is tried against every route in the order specified)
  
-app.listen(3000, () => {// starting the server up indicating the port in which will be deployed and the function to execute when the server initiate
-    console.log('Server is up on port 3000.');
+app.listen(port, () => {// starting the server up indicating the port in which will be deployed and the function to execute when the server initiate
+    console.log(`Server is up on port ${port}.`);
 }); // using ctrl + C in command line, we can quit the execution 
+
+// HEROKU configurations
+/* - We run the command 'heroku create dluz-weather-application' to create the application in heroku (the last variable is the name given to it)
+   - package.json file was modified specifying the start script in order to tell heroku how to execute our app
+   - We create the port const with an environmental variable for the heroku config port
+   - The fetch url in our js/app.js to a shorter version /weather... without telling the localhost or anything in order to set an adaptative url (heroku or local) 
+   - Make a commit and push to github
+   - Make a 'git push heroku main' to push our changes to heroku site
+*/
