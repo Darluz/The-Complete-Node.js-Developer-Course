@@ -98,8 +98,13 @@ MongoClient.connect(
     }).then((result) => console.log(result.modifiedCount)) // property that shows the number of documents modified
            .catch((error) => console.log(error));
 
+    db.collection("task").deleteOne({ 
+        description : "xxxx"
+    }).then((result) => console.log(result))
+    .catch((error) => console.log(error));
+
     db.collection("users").deleteMany({ // deleting many documents
-        age: 27
+        age: 27 // deleting all documents with a field age equals 27
     }).then((result) => console.log(result))
         .catch((error) => console.log(error));
 });
